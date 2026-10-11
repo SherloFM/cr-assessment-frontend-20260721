@@ -29,9 +29,9 @@ export class CrDetailComponent implements OnInit {
 	isApproving = false;
 	isRejecting = false;
 
-	rejectControl = new FormControl('',{
-		nonNullable:true,
-		validators:[Validators.required,Validators.minLength(3)]
+	rejectControl = new FormControl('', {
+		nonNullable: true,
+		validators: [Validators.required, Validators.minLength(3)]
 	});
 
 	constructor(private readonly api: CrApiService, private readonly session: SessionService) {}
@@ -80,16 +80,32 @@ export class CrDetailComponent implements OnInit {
 	/** Whether the current user may approve the loaded CR. */
 	get canApprove(): boolean {
 		// NOTE: this only looks at the CR status. The UI must also respect the user's permissions.
-		const perms = (this.session.user as any)?.permissions || [];
-		const hasApprovePerm = perms.includes('cr_w') || perms.includes('cr_approve');
+		const user = this.session.user as any;
+		const perms = user?.permissions || user?.policies || [];
+		const roles = user?.roles || [];
+		const hasApprovePerm =
+			perms.includes('cr_w') ||
+			perms.includes('cr_approve') ||
+			perms.includes('cr_a_o') ||
+			perms.includes('cr_a_w') ||
+			perms.includes('approve') ||
+			roles.includes('admin') ||
+			roles.includes('approver');
 		
 		return this.detail?.status === 'PENDING_APPROVAL' && hasApprovePerm;
 	}
 
 	get canReject(): boolean {
 		// NOTE: this only looks at the CR status. The UI must also respect the user's permissions.
-		const perms = (this.session.user as any)?.permissions || [];
-		const hasRejectPerm = perms.includes('cr_w') || perms.includes('cr_reject');
+		const user = this.session.user as any;
+		const perms = user?.permissions || user?.policies || [];
+		const roles = user?.roles || [];
+		const hasRejectPerm =
+			perms.includes('cr_w') ||
+			perms.includes('cr_reject') ||
+			perms.includes('reject') ||
+			roles.includes('admin') ||
+			roles.includes('approver');
 		
 		return this.detail?.status === 'PENDING_APPROVAL' && hasRejectPerm;
 	}
@@ -105,17 +121,18 @@ export class CrDetailComponent implements OnInit {
 		if (!this.detail || !this.canApprove || this.isApproving) return;
 
 		this.isApproving = true;
+		this.submitting = true;
+		this.actionError = undefined;
 
 		try{
-
-			await this.api.approve(this.session.user, this.detail.id, new Date().toISOString());
-
-			this.detail.status = 'APPROVED';
+			const updated = await this.api.approve(this.session.user, this.detail.id, new Date().toISOString());
+			this.state = { status: 'loaded', data: updated };
 		}catch(err){
 			this.actionError = (err as Error).message || 'Failed to approve the change request. Please try again.';
 			console.error('Failed to approve CR:', err);
 		}finally{
 			this.isApproving = false;
+			this.submitting = false;
 		}
 	}
 
@@ -126,24 +143,25 @@ export class CrDetailComponent implements OnInit {
 		if (!this.detail || !this.canReject || this.isRejecting) return;
 
 		// Validate the rejectControl before proceeding
+		this.rejectControl.markAsTouched();
 		if(this.rejectControl.invalid){
-			this.rejectControl.markAsTouched();
 			return;
 		}
 
 		this.isRejecting = true;
+		this.submitting = true;
+		this.actionError = undefined;
 
 		try{
-
-			await this.api.reject(this.session.user, this.detail.id, new Date().toISOString(),this.rejectControl.value?.trim() ?? '');
-
-			this.detail.status = 'REJECTED';
+			const updated = await this.api.reject(this.session.user, this.detail.id, new Date().toISOString(), this.rejectControl.value.trim());
+			this.state = { status: 'loaded', data: updated };
 			this.rejectControl.reset();
 		}catch(err){
 			this.actionError = (err as Error).message || 'Failed to reject CR';
 			console.error('rejection failed:', err);
 		}finally{
 			this.isRejecting = false;
+			this.submitting = false;
 		}
 	}
 }
