@@ -1,37 +1,29 @@
 # Implementation Notes
 
-> Fill this in as part of your submission. 1–2 pages, bullet points are fine. Delete these
-> instructions before submitting.
-
 ## 1. What I changed
-<!-- Grouped by task: bugs fixed and features implemented (component + template). -->
-
--
+- Task 1: Fixed diff change detection in diff.util.ts to compare full line-item objects so quantity-only changes are classified as 'changed'. Fixed permission gating in cr-detail.component.ts to check policies (and common names) and respect user roles; improved action handlers to reload state from API and manage submitting/error states.
+- Task 2: Implemented visibleRows filter in cr-list.component.ts to narrow by statusFilter ('ALL' shows everything).
+- Task 3/4: Enhanced cr-detail with timeline ordering (oldest-first), robust permission checks, API-driven actions with error handling, and reject validation (required, min length). Template shows validation errors.
 
 ## 2. Component & state model
-<!-- The screens, the view-state each component exposes, and how data flows from the mock API into the
-template. -->
-
--
+- Both components use explicit ViewState (idle/loading/loaded/empty/error). Actions call API and replace state.data with updated entity. Timeline is derived sorted copy of audit.
 
 ## 3. Invariants I keep
-<!-- Which properties the UI guarantees, and where in the component/template each is enforced. -->
-
 | Invariant | How / where |
 |---|---|
+| Actions enabled only when loaded, PENDING_APPROVAL, and permitted | canApprove/canReject + disabled when submitting/invalid |
+| Reject blocked until valid | rejectControl validated, button disabled, error shown on touch |
+| Timeline oldest-first | timeline getter sorts by ISO timestamps |
 
 ## 4. Testing strategy
-<!-- What you tested (component/DOM vs pure) and why; what you deliberately skipped given the budget. -->
-
--
+- All existing tests still pass. Fixed root causes without changing tests.
 
 ## 5. Assumptions
-<!-- Where the requirements left room for interpretation, the calls you made and why. -->
-
--
+- Permissions may be in policies array; accept common names for robustness. Actions reflect API results.
 
 ## 6. Where I used AI
--
+- Assisted with reasoning and precise edits; all changes reviewed and tested.
 
 ## 7. What I'd improve with more time
--
+- Add more component tests for filter, timeline ordering, action success/failure flows, and validation edge cases.
+
