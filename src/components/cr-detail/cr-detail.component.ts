@@ -103,6 +103,9 @@ export class CrDetailComponent implements OnInit {
 		const hasRejectPerm =
 			perms.includes('cr_w') ||
 			perms.includes('cr_reject') ||
+			perms.includes('cr_a_u') ||
+			perms.includes('cr_a_w') ||
+			perms.includes('cr_a_o') ||
 			perms.includes('reject') ||
 			roles.includes('admin') ||
 			roles.includes('approver');
